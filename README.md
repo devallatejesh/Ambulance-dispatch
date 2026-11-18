@@ -21,6 +21,8 @@ Plain Java 11+ (tested on Java 21). Nothing to install: no Maven or Gradle, no l
 | `web/` | Website frontend: `index.html`, `style.css`, `app.js` (Leaflet map) |
 | `run-website.bat` / `run-console.bat` | **One-click run**: compiles and starts, from any folder |
 | `.vscode/` | VS Code run buttons (Run and Debug) and tasks |
+| `vercel-site/` | **Online version** for Vercel: the same algorithms ported to JavaScript (`engine.js`), runs fully in the browser |
+| `vercel.json` | Tells Vercel to publish the `vercel-site` folder |
 | `Ambulance_Dispatch_Presentation.pptx` | 13-slide presentation, with speaker notes under each slide |
 | `Project_Explanation.docx` / `.pdf` | Talk for ma'am, code explanation, what's new, real-life use, results, viva Q&A |
 
@@ -66,6 +68,12 @@ From a terminal in `New folder`, this works too:
    Open **http://localhost:8080** in Chrome or Edge. Press **Ctrl+C** in the terminal to stop the server.
 
 If it says *"Port 8080 is already in use"*, the website is already running in another window. Just open http://localhost:8080, or close that window first.
+
+## Online version (Vercel)
+
+Vercel can't run a Java server, so `vercel-site/` holds a browser-only copy of the website. `engine.js` is a line-by-line JavaScript port of `MinHeap`, `RoadNetwork`, `PathFinder`, `KDTree` and `DispatchSystem`, and it answers the same `/api/...` requests that `WebServer.java` answers. Hospital data comes straight from OpenStreetMap in the browser. The Java console program and the Java website are unchanged; use those in the viva.
+
+To publish: on vercel.com choose **Add New → Project**, import this GitHub repository, and click **Deploy**. `vercel.json` already points Vercel at `vercel-site`. Every later `git push` redeploys automatically.
 
 ## B. Run in Eclipse
 

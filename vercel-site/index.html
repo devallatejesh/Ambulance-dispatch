@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ambulance Dispatch Demo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Honest disclaimer: always visible -->
+  <div class="banner" role="alert">
+    <b>Student demo &mdash; not a real emergency service.</b> No ambulance will come and no hospital is contacted.
+    In a real emergency call <a href="tel:108">108</a> (ambulance) or <a href="tel:112">112</a>.
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">+</div>
+      <div>
+        <h1>Ambulance Dispatch</h1>
+        <p>Min-heap &middot; KD-Tree &middot; A* &middot; Dijkstra &middot; Hash tables</p>
+      </div>
+    </div>
+
+    <form id="searchForm" class="search" autocomplete="off">
+      <input id="searchBox" type="search" placeholder="Search a place or address, or paste 12.97, 77.59" aria-label="Search a place">
+      <button type="submit">Search</button>
+      <button type="button" id="btnMyLoc" class="ghost" title="Use my current location">&#9678; My location</button>
+      <ul id="searchResults" class="results" hidden></ul>
+    </form>
+
+    <div class="chips">
+      <div class="chip"><span>Clock</span><b id="chipClock">0.0 min</b></div>
+      <div class="chip"><span>Free ambulances</span><b id="chipFree">&ndash;</b></div>
+      <div class="chip"><span>Waiting</span><b id="chipWait">0</b></div>
+      <div class="chip"><span>Hospitals</span><b id="chipHosp">&ndash;</b></div>
+      <div class="chip"><span>Traffic</span><b id="chipTraffic">&ndash;</b></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <p id="status" class="status">Starting&hellip;</p>
+
+      <!-- 1. Request -->
+      <section class="card">
+        <h2>Request an ambulance <small>(simulated)</small></h2>
+        <div class="locbox">
+          <div class="locline">
+            <span class="lg pin">!</span>
+            <div class="grow">
+              <b>Patient location</b>
+              <div id="pinAddr" class="addr">Click the map to set it</div>
+              <span id="pinInfo" class="mono sub"></span>
+            </div>
+          </div>
+          <div class="locbtns">
+            <button type="button" id="btnPick" class="ghost" title="Then click the map">&#8982; Pick on map</button>
+            <button type="button" id="btnHere" class="ghost" title="Use this device's location">&#9678; My location</button>
+            <button type="button" id="btnCentre" class="ghost" title="Put the pin in the middle of what you see">&#8853; Map centre</button>
+          </div>
+          <p class="hint">You can also <b>click anywhere</b> on the map, <b>drag</b> the red pin, or type an
+            <b>address</b> or <b>coordinates</b> (e.g. <span class="mono">12.97, 77.59</span>) in the search box.</p>
+        </div>
+        <label for="pName">Patient name</label>
+        <input id="pName" maxlength="40" placeholder="e.g. Ravi">
+        <label>Severity</label>
+        <div class="seg sev" role="radiogroup" id="sevGroup">
+          <button type="button" data-sev="1" class="s1">Critical</button>
+          <button type="button" data-sev="2" class="s2">Serious</button>
+          <button type="button" data-sev="3" class="s3 on">Minor</button>
+        </div>
+        <button id="btnRequest" class="primary big" disabled>Request ambulance</button>
+      </section>
+
+      <!-- 2. Tracking -->
+      <section class="card" id="trackCard" hidden>
+        <h2>Dispatch status</h2>
+        <div id="track"></div>
+      </section>
+
+      <!-- 3. Lists -->
+      <section class="card">
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-tab="calls">Calls</button>
+          <button class="tab" data-tab="queue">Queue <span id="qCount" class="badge">0</span></button>
+          <button class="tab" data-tab="ambs">Ambulances</button>
+          <button class="tab" data-tab="hosps">Hospitals</button>
+        </div>
+        <div class="tabpanel" id="tab-calls"><ul id="callList" class="list"></ul></div>
+        <div class="tabpanel" id="tab-queue" hidden>
+          <p class="hint">Min-heap order: severity first, then the oldest call.</p>
+          <ol id="queueList" class="list"></ol>
+        </div>
+        <div class="tabpanel" id="tab-ambs" hidden><ul id="ambList" class="list"></ul></div>
+        <div class="tabpanel" id="tab-hosps" hidden>
+          <p class="hint">Source: <b id="hospSource"></b>. Bed counts are simulated. Click a hospital to see it on the map.</p>
+          <ul id="hospList" class="list"></ul>
+        </div>
+      </section>
+
+      <!-- 4. Traffic + clock -->
+      <section class="card">
+        <h2>Traffic <small>(simulated)</small></h2>
+        <div class="seg" id="trafficGroup">
+          <button type="button" data-level="LIGHT">Light</button>
+          <button type="button" data-level="NORMAL" class="on">Normal</button>
+          <button type="button" data-level="HEAVY">Rush hour</button>
+        </div>
+        <label class="check"><input type="checkbox" id="showTraffic" checked> Show road speeds on the map</label>
+        <div class="tlegend">
+          <span><i style="background:#2e7d32"></i>50&ndash;60 km/h</span>
+          <span><i style="background:#f9a825"></i>30&ndash;49</span>
+          <span><i style="background:#ef6c00"></i>20&ndash;29</span>
+          <span><i style="background:#c62828"></i>&lt; 20</span>
+        </div>
+
+        <h2 class="mt">Simulation clock</h2>
+        <div class="row">
+          <button id="btnLive" class="ghost">&#10074;&#10074; Pause</button>
+          <select id="speed" aria-label="Clock speed">
+            <option value="0.5">1 s = 30 s</option>
+            <option value="1" selected>1 s = 1 min</option>
+            <option value="3">1 s = 3 min</option>
+          </select>
+          <button id="btnStep" class="ghost">+5 min</button>
+          <button id="btnReset" class="ghost danger-text" title="Rebuild this area and clear all calls">Reset</button>
+        </div>
+      </section>
+
+      <details class="card">
+        <summary>Event log</summary>
+        <pre id="log"></pre>
+      </details>
+
+      <section class="card about">
+        <h2>What is real and what is simulated?</h2>
+        <ul>
+          <li><b>Real:</b> the map and the hospital names and locations, from
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (Nominatim / Overpass, no API key).</li>
+          <li><b>Simulated:</b> ambulances, bed counts, traffic and roads. Routes run on a 10 km grid laid over the map, not on real streets.</li>
+          <li>Phone numbers come from OpenStreetMap and may be out of date. This site <b>never contacts anyone</b>.</li>
+          <li><b>Runs in your browser:</b> the same heap, KD-Tree, A*, Dijkstra and hash-table code as our Java project, ported to JavaScript so it can be hosted online.</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="mapwrap">
+      <div id="map"></div>
+      <div id="pickBanner" class="pickbanner" hidden>Click on the map to place the patient &middot; <button type="button" id="pickCancel" class="ghost">Cancel</button></div>
+      <div class="legend">
+        <span><i class="lg amb">&#128657;</i>Free</span>
+        <span><i class="lg busy">&#128657;</i>Busy</span>
+        <span><i class="lg hosp">H</i>Hospital</span>
+        <span><i class="lg pin">!</i>Patient</span>
+        <span><i class="ln l1"></i>To patient</span>
+        <span><i class="ln l2"></i>To hospital</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
