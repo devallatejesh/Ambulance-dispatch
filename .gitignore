@@ -1,0 +1,9 @@
+# compiled classes (rebuilt by run-website.bat / run-console.bat)
+out/
+*.class
+
+# OpenStreetMap answers cached by the web server (rebuilt automatically)
+osm-cache.txt
+
+# Office temp files
+~$*

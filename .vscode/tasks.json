@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run website",
+      "type": "shell",
+      "command": "javac -d out (Get-ChildItem src/*.java).FullName; java -cp out WebServer",
+      "options": { "cwd": "${workspaceFolder}", "shell": { "executable": "powershell.exe", "args": ["-NoProfile", "-Command"] } },
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Run console program",
+      "type": "shell",
+      "command": "javac -d out (Get-ChildItem src/*.java).FullName; java -cp out Main",
+      "options": { "cwd": "${workspaceFolder}", "shell": { "executable": "powershell.exe", "args": ["-NoProfile", "-Command"] } },
+      "problemMatcher": []
+    }
+  ]
+}
