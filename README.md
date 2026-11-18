@@ -3,6 +3,8 @@
 Java code for the report *"Ambulance Dispatch System using Advanced Data Structures"*.
 Plain Java 11+ (tested on Java 21). Nothing to install: no Maven or Gradle, no libraries.
 
+**Live demo:** https://ambulance-dispatch-vert.vercel.app/
+
 > **Student demo, not a real emergency service.** In a real emergency call **108** (ambulance) or **112**.
 
 ## What is in the folder
